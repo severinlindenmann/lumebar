@@ -14,29 +14,45 @@ swift build -c release
 plutil -lint Sources/LumeBar/Resources/Info.plist
 ```
 
-## 3) Commit
+## 3) Package app bundle
+```bash
+scripts/package-app.sh
+```
+
+This creates:
+- `dist/LumeBar.app`
+- `dist/LumeBar.zip`
+
+Optional signed/notarized build:
+```bash
+scripts/sign-and-notarize.sh \
+  --identity "Developer ID Application: Your Name (TEAMID)" \
+  --keychain-profile "<notarytool-profile>"
+```
+
+## 4) Commit
 ```bash
 git add -A
 git commit -m "Release 1.0.0-beta"
 ```
 
-## 4) Tag
+## 5) Tag
 ```bash
 git tag -a v1.0.0-beta -m "LumeBar 1.0.0-beta"
 ```
 
-## 5) Push
+## 6) Push
 ```bash
 git push origin main
 git push origin v1.0.0-beta
 ```
 
-## 6) Publish GitHub release
+## 7) Publish GitHub release
 - Create a new release from tag `v1.0.0-beta`.
 - Title: `LumeBar 1.0.0-beta`
 - Body: use `release-notes/1.0.0-beta.md`.
 - Mark as pre-release.
 
-## 7) Post-release
+## 8) Post-release
 - Confirm issue templates are enabled.
 - Open a tracking issue for `1.0.0-beta` feedback triage.

@@ -33,6 +33,25 @@ swift build -c release
 swift run LumeBar
 ```
 
+## Package as a `.app`
+Create a local app bundle and zip archive:
+
+```bash
+scripts/package-app.sh
+```
+
+Artifacts:
+- `dist/LumeBar.app`
+- `dist/LumeBar.zip`
+
+For signed distribution (Developer ID + notarization):
+
+```bash
+scripts/sign-and-notarize.sh \
+  --identity "Developer ID Application: Your Name (TEAMID)" \
+  --keychain-profile "<notarytool-profile>"
+```
+
 ## Configuration
 - Base URL: set in Settings (default `http://localhost:7777`).
 - Start headless: toggle in Settings to run VMs without display.
