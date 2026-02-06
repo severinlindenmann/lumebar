@@ -1,0 +1,24 @@
+{
+  "originHash" : "b97410efe788a7d90dd5a88bfacf5f8672aadfd1f543e707b4825987dd9e6fa1",
+  "pins" : [
+    {
+      "identity" : "cryptoswift",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/royalapplications/CryptoSwift.git",
+      "state" : {
+        "branch" : "foundationessentials",
+        "revision" : "a59b4d91ebb22011656c830f874fe7152e183a57"
+      }
+    },
+    {
+      "identity" : "royalvnc",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/royalapplications/royalvnc.git",
+      "state" : {
+        "branch" : "main",
+        "revision" : "3b01b5a113592b2826ececf290067ff50236c536"
+      }
+    }
+  ],
+  "version" : 3
+}
