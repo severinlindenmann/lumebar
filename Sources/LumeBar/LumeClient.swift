@@ -283,11 +283,12 @@ final class LumeClient: ObservableObject {
         guard !didAttemptStartServer else { return }
         didAttemptStartServer = true
         if let serverProcess, serverProcess.isRunning { return }
+        guard let executableURL = findLumeExecutableURL() else { return }
 
         let process = Process()
         let outputPipe = Pipe()
         let errorPipe = Pipe()
-        process.executableURL = lumeExecutableURL()
+        process.executableURL = executableURL
         process.arguments = ["serve"]
         process.standardOutput = outputPipe
         process.standardError = errorPipe
@@ -315,7 +316,7 @@ final class LumeClient: ObservableObject {
     }
 
     private func runCLI(arguments: [String]) async throws {
-        let executableURL = lumeExecutableURL()
+        let executableURL = try requiredLumeExecutableURL()
         let result = try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<CLIResult, Error>) in
             let process = Process()
             let outputPipe = Pipe()
@@ -349,7 +350,7 @@ final class LumeClient: ObservableObject {
     }
 
     private func runCLIInBackground(arguments: [String]) async throws {
-        let executablePath = lumeExecutableURL().path
+        let executablePath = try requiredLumeExecutableURL().path
         let command = "nohup \(shellQuote(executablePath)) \(arguments.map(shellQuote).joined(separator: " ")) >\(shellQuote(detachedRunLogPath)) 2>&1 &"
 
         let result = try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<CLIResult, Error>) in
@@ -403,7 +404,7 @@ final class LumeClient: ObservableObject {
         return false
     }
 
-    private func lumeExecutableURL() -> URL {
+    private func findLumeExecutableURL() -> URL? {
         let env = ProcessInfo.processInfo.environment
         let envPaths = (env["PATH"] ?? "")
             .split(separator: ":")
@@ -424,7 +425,14 @@ final class LumeClient: ObservableObject {
             }
         }
 
-        return URL(fileURLWithPath: "/opt/homebrew/bin/lume")
+        return nil
+    }
+
+    private func requiredLumeExecutableURL() throws -> URL {
+        guard let url = findLumeExecutableURL() else {
+            throw LumeError.cliNotInstalled
+        }
+        return url
     }
 
     private func shellQuote(_ value: String) -> String {
@@ -499,6 +507,7 @@ private extension KeyedDecodingContainer where Key == LumeVMDetails.CodingKeys {
 private enum LumeError: Error {
     case invalidResponse
     case httpError(Int)
+    case cliNotInstalled
     case cliLaunchFailed
     case cliCommandFailed(String)
     case cliStartVerificationFailed(String)
@@ -509,6 +518,8 @@ private enum LumeError: Error {
             return "Unexpected response from Lume API."
         case .httpError(let status):
             return "Lume API returned HTTP \(status)."
+        case .cliNotInstalled:
+            return "Lume CLI not found. Install `lume` and ensure it is available in PATH (for example: /opt/homebrew/bin/lume)."
         case .cliLaunchFailed:
             return "Failed to launch `lume`. Make sure it is installed and available in PATH."
         case .cliCommandFailed(let output):

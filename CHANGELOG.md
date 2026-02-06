@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [1.0.0-beta2] - 2026-02-06
+### Fixed
+- Added explicit CLI-not-installed error handling so Start/Stop shows a clear message when `lume` is unavailable.
+- Stabilized initial menu layout before thumbnail arrival.
+- Updated thumbnail viewport to `4:3` with fit mode to avoid top/bottom cropping.
+
 ## [1.0.0-beta] - 2026-02-06
 ### Added
 - Menu bar UI for listing Lume VMs and viewing running state.

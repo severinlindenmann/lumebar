@@ -229,9 +229,7 @@ private struct DetailsView: View {
 
     private var thumbnailView: some View {
         let image = thumbnails.image(for: vm.name)
-        let aspect: CGFloat = 3 / 2
-        let minHeight: CGFloat = image == nil ? 120 : 0
-        let maxHeight: CGFloat = 300
+        let thumbnailAspect: CGFloat = 4.0 / 3.0
         let vncUrl = client.details[vm.name]?.vncUrl ?? vm.vncUrl
         let ip = client.details[vm.name]?.ipAddress ?? vm.ipAddress
         let isScreenSharingReady = (vncUrl?.isEmpty == false) || (ip?.isEmpty == false)
@@ -243,8 +241,7 @@ private struct DetailsView: View {
             if let image {
                 Image(decorative: image, scale: 1, orientation: .up)
                     .resizable()
-                    .scaledToFill()
-                    .clipped()
+                    .scaledToFit()
             } else if let status = thumbnails.status(for: vm.name) {
                 Text(status)
                     .font(.footnote)
@@ -256,8 +253,7 @@ private struct DetailsView: View {
             }
         }
         .frame(maxWidth: .infinity)
-        .aspectRatio(aspect, contentMode: .fit)
-        .frame(minHeight: minHeight, maxHeight: maxHeight)
+        .aspectRatio(thumbnailAspect, contentMode: .fit)
         .glassEffect(in: RoundedRectangle(cornerRadius: 6, style: .continuous))
         .contentShape(Rectangle())
         .onTapGesture(count: 2) {
