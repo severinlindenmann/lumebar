@@ -13,6 +13,26 @@ struct LumeBarApp: App {
         NSApplication.shared.setActivationPolicy(.accessory)
     }
 
+    private var menuBarStatusImage: NSImage {
+        if let url = Bundle.module.url(
+            forResource: "menubar-2x",
+            withExtension: "png",
+            subdirectory: "Assets.xcassets/MenubarIcon.imageset"
+        ), let image = NSImage(contentsOf: url) {
+            image.size = NSSize(width: 18, height: 18)
+            image.isTemplate = true
+            return image
+        }
+
+        let fallback = NSImage(
+            systemSymbolName: "play.rectangle.on.rectangle",
+            accessibilityDescription: "Lume"
+        ) ?? NSImage()
+        fallback.size = NSSize(width: 18, height: 18)
+        fallback.isTemplate = true
+        return fallback
+    }
+
     var body: some Scene {
         MenuBarExtra {
             ContentView(client: client, thumbnails: thumbnails, noDisplay: $noDisplay)
@@ -25,8 +45,11 @@ struct LumeBarApp: App {
             Label {
                 Text("Lume")
             } icon: {
-                Image("MenubarIcon", bundle: .module)
-                    .renderingMode(.template)
+                Image(nsImage: menuBarStatusImage)
+                    .resizable()
+                    .interpolation(.high)
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: 16, height: 16)
             }
         }
         .menuBarExtraStyle(.window)

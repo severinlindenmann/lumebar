@@ -2,10 +2,14 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+    <key>CFBundleExecutable</key>
+    <string>LumeBar</string>
     <key>CFBundleDisplayName</key>
     <string>LumeBar</string>
     <key>CFBundleName</key>
     <string>LumeBar</string>
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
     <key>CFBundleIdentifier</key>
     <string>com.lume.LumeBar</string>
     <key>CFBundleIconName</key>

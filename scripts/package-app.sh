@@ -90,6 +90,30 @@ cp "$plist_path" "$app_path/Contents/Info.plist"
 cp -R "$resource_bundle_path" "$app_path/Contents/Resources/"
 chmod +x "$app_path/Contents/MacOS/${app_name}"
 
+# Compile asset catalog to generate AppIcon metadata and icon files for the app bundle.
+actool_tmp_dir="$(mktemp -d "${TMPDIR:-/tmp}/lumebar.actool.XXXXXX")"
+xcrun actool "Sources/LumeBar/Resources/Assets.xcassets" \
+  --compile "$actool_tmp_dir" \
+  --platform macosx \
+  --minimum-deployment-target 13.0 \
+  --app-icon AppIcon \
+  --output-partial-info-plist "$actool_tmp_dir/partial.plist" >/dev/null
+cp "$actool_tmp_dir/AppIcon.icns" "$app_path/Contents/Resources/AppIcon.icns"
+cp "$actool_tmp_dir/Assets.car" "$app_path/Contents/Resources/Assets.car"
+rm -rf "$actool_tmp_dir"
+
+# Ensure app bundle points to icon metadata in both legacy and modern forms.
+plutil -replace CFBundleIconFile -string AppIcon "$app_path/Contents/Info.plist"
+plutil -replace CFBundleIconName -string AppIcon "$app_path/Contents/Info.plist"
+plutil -replace CFBundleExecutable -string "$app_name" "$app_path/Contents/Info.plist"
+plutil -replace CFBundlePackageType -string APPL "$app_path/Contents/Info.plist"
+
+# Copy SwiftPM dynamic libraries used by the executable.
+# The binary is linked with @rpath lookups that resolve next to the executable.
+while IFS= read -r dylib_path; do
+  cp "$dylib_path" "$app_path/Contents/MacOS/"
+done < <(find .build -type f -path '*/release/*.dylib' -not -path '*.dSYM/*' -print)
+
 if [[ "$create_zip" -eq 1 ]]; then
   echo "[package] creating zip archive at ${zip_path}"
   rm -f "$zip_path"

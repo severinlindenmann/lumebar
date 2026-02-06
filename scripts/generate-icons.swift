@@ -1,17 +1,145 @@
 import AppKit
 import Foundation
 
-struct IconStyle {
-    let background: NSColor?
-    let stroke: NSColor
-    let fill: NSColor
-    let leafStroke: NSColor
-    let lineWidthFraction: CGFloat
-}
-
 enum IconKind {
     case menubar
     case app
+}
+
+private extension NSColor {
+    static func rgb(_ r: CGFloat, _ g: CGFloat, _ b: CGFloat, _ a: CGFloat = 1) -> NSColor {
+        NSColor(calibratedRed: r / 255.0, green: g / 255.0, blue: b / 255.0, alpha: a)
+    }
+}
+
+private func roundedRectPath(_ rect: CGRect, radius: CGFloat) -> NSBezierPath {
+    NSBezierPath(roundedRect: rect, xRadius: radius, yRadius: radius)
+}
+
+private func withNormalizedCanvas(_ context: CGContext, size: CGFloat, _ draw: () -> Void) {
+    context.saveGState()
+    context.translateBy(x: 0, y: 0)
+    context.scaleBy(x: size, y: size)
+    draw()
+    context.restoreGState()
+}
+
+private func stroke(
+    _ path: NSBezierPath,
+    color: NSColor,
+    width: CGFloat,
+    cap: NSBezierPath.LineCapStyle = .round,
+    join: NSBezierPath.LineJoinStyle = .round
+) {
+    color.setStroke()
+    path.lineWidth = width
+    path.lineCapStyle = cap
+    path.lineJoinStyle = join
+    path.stroke()
+}
+
+private func fill(_ path: NSBezierPath, color: NSColor) {
+    color.setFill()
+    path.fill()
+}
+
+private func drawMenuBarGlyph(in context: CGContext, size: Int) {
+    let canvas = CGFloat(size)
+    withNormalizedCanvas(context, size: canvas) {
+        let strokeColor = NSColor.black
+        let lineWidth: CGFloat = 0.10
+
+        let head = NSBezierPath(ovalIn: CGRect(x: 0.20, y: 0.22, width: 0.60, height: 0.54))
+        let leftEar = NSBezierPath(ovalIn: CGRect(x: 0.05, y: 0.47, width: 0.28, height: 0.28))
+        let rightEar = NSBezierPath(ovalIn: CGRect(x: 0.67, y: 0.47, width: 0.28, height: 0.28))
+
+        stroke(head, color: strokeColor, width: lineWidth)
+        stroke(leftEar, color: strokeColor, width: lineWidth)
+        stroke(rightEar, color: strokeColor, width: lineWidth)
+
+        let nose = NSBezierPath(roundedRect: CGRect(x: 0.44, y: 0.34, width: 0.12, height: 0.17), xRadius: 0.06, yRadius: 0.06)
+        fill(nose, color: strokeColor)
+
+        let stem = NSBezierPath()
+        stem.move(to: CGPoint(x: 0.50, y: 0.76))
+        stem.line(to: CGPoint(x: 0.50, y: 0.86))
+        stroke(stem, color: strokeColor, width: lineWidth * 0.65)
+
+        let leaf = NSBezierPath(ovalIn: CGRect(x: 0.46, y: 0.84, width: 0.08, height: 0.11))
+        stroke(leaf, color: strokeColor, width: lineWidth * 0.60)
+    }
+}
+
+private func drawAppIcon(in context: CGContext, size: Int) {
+    let canvas = CGFloat(size)
+    let rect = CGRect(x: 0, y: 0, width: canvas, height: canvas)
+    let radius = canvas * 0.225
+
+    context.saveGState()
+    let clipPath = roundedRectPath(rect, radius: radius)
+    clipPath.addClip()
+
+    let bgGradient = NSGradient(colors: [
+        .rgb(42, 64, 255),
+        .rgb(34, 170, 255),
+        .rgb(55, 226, 211)
+    ])!
+    bgGradient.draw(in: rect, angle: 55)
+
+    let glowRect = CGRect(x: canvas * 0.10, y: canvas * 0.55, width: canvas * 0.80, height: canvas * 0.45)
+    let glowGradient = NSGradient(starting: NSColor(white: 1, alpha: 0.40), ending: NSColor(white: 1, alpha: 0.0))!
+    glowGradient.draw(in: glowRect, relativeCenterPosition: .zero)
+
+    context.restoreGState()
+
+    withNormalizedCanvas(context, size: canvas) {
+        let shell = NSBezierPath(roundedRect: CGRect(x: 0.11, y: 0.11, width: 0.78, height: 0.78), xRadius: 0.24, yRadius: 0.24)
+        fill(shell, color: NSColor(white: 1, alpha: 0.20))
+        stroke(shell, color: NSColor(white: 1, alpha: 0.35), width: 0.016)
+
+        let leftEar = NSBezierPath(ovalIn: CGRect(x: 0.18, y: 0.48, width: 0.22, height: 0.22))
+        let rightEar = NSBezierPath(ovalIn: CGRect(x: 0.60, y: 0.48, width: 0.22, height: 0.22))
+        let face = NSBezierPath(ovalIn: CGRect(x: 0.24, y: 0.23, width: 0.52, height: 0.45))
+
+        fill(leftEar, color: NSColor(white: 1, alpha: 0.70))
+        fill(rightEar, color: NSColor(white: 1, alpha: 0.70))
+        fill(face, color: NSColor(white: 1, alpha: 0.82))
+
+        stroke(leftEar, color: NSColor(white: 1, alpha: 0.30), width: 0.012)
+        stroke(rightEar, color: NSColor(white: 1, alpha: 0.30), width: 0.012)
+        stroke(face, color: NSColor(white: 1, alpha: 0.35), width: 0.012)
+
+        let leftEye = NSBezierPath(roundedRect: CGRect(x: 0.37, y: 0.43, width: 0.06, height: 0.09), xRadius: 0.02, yRadius: 0.02)
+        let rightEye = NSBezierPath(roundedRect: CGRect(x: 0.57, y: 0.43, width: 0.06, height: 0.09), xRadius: 0.02, yRadius: 0.02)
+        fill(leftEye, color: .rgb(15, 40, 95, 0.45))
+        fill(rightEye, color: .rgb(15, 40, 95, 0.45))
+
+        let nose = NSBezierPath(roundedRect: CGRect(x: 0.45, y: 0.33, width: 0.10, height: 0.14), xRadius: 0.05, yRadius: 0.05)
+        fill(nose, color: .rgb(9, 29, 84, 0.88))
+
+        let stem = NSBezierPath()
+        stem.move(to: CGPoint(x: 0.50, y: 0.70))
+        stem.line(to: CGPoint(x: 0.50, y: 0.80))
+        stroke(stem, color: NSColor(white: 1, alpha: 0.78), width: 0.014)
+
+        let leafLeft = NSBezierPath(ovalIn: CGRect(x: 0.44, y: 0.78, width: 0.08, height: 0.12))
+        let leafRight = NSBezierPath(ovalIn: CGRect(x: 0.50, y: 0.78, width: 0.08, height: 0.12))
+        fill(leafLeft, color: .rgb(192, 255, 230, 0.85))
+        fill(leafRight, color: .rgb(166, 255, 214, 0.78))
+        stroke(leafLeft, color: NSColor(white: 1, alpha: 0.45), width: 0.010)
+        stroke(leafRight, color: NSColor(white: 1, alpha: 0.38), width: 0.010)
+
+        let gloss = NSBezierPath()
+        gloss.move(to: CGPoint(x: 0.13, y: 0.85))
+        gloss.curve(to: CGPoint(x: 0.87, y: 0.73), controlPoint1: CGPoint(x: 0.35, y: 0.95), controlPoint2: CGPoint(x: 0.72, y: 0.89))
+        gloss.curve(to: CGPoint(x: 0.87, y: 0.66), controlPoint1: CGPoint(x: 0.89, y: 0.71), controlPoint2: CGPoint(x: 0.89, y: 0.67))
+        gloss.curve(to: CGPoint(x: 0.13, y: 0.76), controlPoint1: CGPoint(x: 0.72, y: 0.79), controlPoint2: CGPoint(x: 0.34, y: 0.86))
+        gloss.close()
+        fill(gloss, color: NSColor(white: 1, alpha: 0.20))
+
+        let outerBorder = NSBezierPath(roundedRect: CGRect(x: 0.008, y: 0.008, width: 0.984, height: 0.984), xRadius: 0.225, yRadius: 0.225)
+        stroke(outerBorder, color: NSColor(white: 1, alpha: 0.23), width: 0.008)
+    }
 }
 
 private func drawIcon(in context: CGContext, size: Int, kind: IconKind) {
@@ -19,125 +147,14 @@ private func drawIcon(in context: CGContext, size: Int, kind: IconKind) {
     context.setAllowsAntialiasing(true)
     context.interpolationQuality = .high
 
-    let rect = CGRect(x: 0, y: 0, width: CGFloat(size), height: CGFloat(size))
-
-    let style: IconStyle = {
-        switch kind {
-        case .menubar:
-            return IconStyle(
-                background: nil,
-                stroke: .black,
-                fill: .black,
-                leafStroke: .black,
-                lineWidthFraction: 0.060
-            )
-        case .app:
-            return IconStyle(
-                background: NSColor(white: 0.97, alpha: 1),
-                stroke: .black,
-                fill: .black,
-                leafStroke: .black,
-                lineWidthFraction: 0.055
-            )
-        }
-    }()
-
-    if let background = style.background {
-        background.setFill()
-
-        // Rounded app icon background.
-        let cornerRadius = rect.width * 0.22
-        NSBezierPath(roundedRect: rect, xRadius: cornerRadius, yRadius: cornerRadius).fill()
-    } else {
+    switch kind {
+    case .menubar:
         NSColor.clear.setFill()
-        rect.fill()
+        CGRect(x: 0, y: 0, width: CGFloat(size), height: CGFloat(size)).fill()
+        drawMenuBarGlyph(in: context, size: size)
+    case .app:
+        drawAppIcon(in: context, size: size)
     }
-
-    // After we scale the context to normalized 0..1 coordinates, line widths must be in that same space.
-    let lw = style.lineWidthFraction
-
-    func strokePath(_ path: NSBezierPath, color: NSColor = style.stroke, width: CGFloat = lw) {
-        color.setStroke()
-        path.lineWidth = width
-        path.lineCapStyle = .round
-        path.lineJoinStyle = .round
-        path.stroke()
-    }
-
-    func fillPath(_ path: NSBezierPath, color: NSColor = style.fill) {
-        color.setFill()
-        path.fill()
-    }
-
-    // Work in normalized coordinates (0..1), then scale to pixels.
-    context.saveGState()
-    context.translateBy(x: rect.minX, y: rect.minY)
-    context.scaleBy(x: rect.width, y: rect.height)
-
-    // Koala head outline (inspired by original Lume icon).
-    let head = NSBezierPath(ovalIn: CGRect(x: 0.14, y: 0.18, width: 0.72, height: 0.62))
-    let leftEar = NSBezierPath(ovalIn: CGRect(x: 0.02, y: 0.50, width: 0.30, height: 0.30))
-    let rightEar = NSBezierPath(ovalIn: CGRect(x: 0.68, y: 0.50, width: 0.30, height: 0.30))
-
-    strokePath(head)
-    strokePath(leftEar)
-    strokePath(rightEar)
-
-    // Eyes (skip for menubar for clarity at 18px).
-    if kind == .app {
-        fillPath(NSBezierPath(roundedRect: CGRect(x: 0.30, y: 0.41, width: 0.10, height: 0.16), xRadius: 0.035, yRadius: 0.035))
-        fillPath(NSBezierPath(roundedRect: CGRect(x: 0.60, y: 0.41, width: 0.10, height: 0.16), xRadius: 0.035, yRadius: 0.035))
-    }
-
-    // Nose (rounded triangle / teardrop).
-    let nose = NSBezierPath()
-    nose.move(to: CGPoint(x: 0.50, y: 0.28))
-    nose.curve(to: CGPoint(x: 0.40, y: 0.36), controlPoint1: CGPoint(x: 0.46, y: 0.28), controlPoint2: CGPoint(x: 0.41, y: 0.31))
-    nose.curve(to: CGPoint(x: 0.45, y: 0.58), controlPoint1: CGPoint(x: 0.35, y: 0.44), controlPoint2: CGPoint(x: 0.38, y: 0.56))
-    nose.curve(to: CGPoint(x: 0.55, y: 0.58), controlPoint1: CGPoint(x: 0.47, y: 0.60), controlPoint2: CGPoint(x: 0.53, y: 0.60))
-    nose.curve(to: CGPoint(x: 0.60, y: 0.36), controlPoint1: CGPoint(x: 0.62, y: 0.56), controlPoint2: CGPoint(x: 0.65, y: 0.44))
-    nose.curve(to: CGPoint(x: 0.50, y: 0.28), controlPoint1: CGPoint(x: 0.59, y: 0.31), controlPoint2: CGPoint(x: 0.54, y: 0.28))
-    nose.close()
-    fillPath(nose)
-
-    // Leaves above head.
-    func addLeaf(center: CGPoint, size: CGSize, rotationDegrees: CGFloat) -> (outline: NSBezierPath, vein: NSBezierPath) {
-        let outline = NSBezierPath()
-        outline.move(to: CGPoint(x: 0, y: -1))
-        outline.curve(to: CGPoint(x: 0.85, y: 0.0), controlPoint1: CGPoint(x: 0.55, y: -0.95), controlPoint2: CGPoint(x: 0.85, y: -0.45))
-        outline.curve(to: CGPoint(x: 0, y: 1), controlPoint1: CGPoint(x: 0.85, y: 0.45), controlPoint2: CGPoint(x: 0.55, y: 0.95))
-        outline.curve(to: CGPoint(x: -0.85, y: 0.0), controlPoint1: CGPoint(x: -0.55, y: 0.95), controlPoint2: CGPoint(x: -0.85, y: 0.45))
-        outline.curve(to: CGPoint(x: 0, y: -1), controlPoint1: CGPoint(x: -0.85, y: -0.45), controlPoint2: CGPoint(x: -0.55, y: -0.95))
-        outline.close()
-
-        let vein = NSBezierPath()
-        vein.move(to: CGPoint(x: 0, y: -0.82))
-        vein.line(to: CGPoint(x: 0, y: 0.82))
-
-        var t = AffineTransform.identity
-        t.translate(x: center.x, y: center.y)
-        t.rotate(byDegrees: rotationDegrees)
-        t.scale(x: size.width / 2.0, y: size.height / 2.0)
-
-        outline.transform(using: t)
-        vein.transform(using: t)
-        return (outline, vein)
-    }
-
-    let leafMid = addLeaf(center: CGPoint(x: 0.50, y: 0.93), size: CGSize(width: 0.14, height: 0.22), rotationDegrees: 0)
-    let leafLeft = addLeaf(center: CGPoint(x: 0.39, y: 0.89), size: CGSize(width: 0.12, height: 0.18), rotationDegrees: -25)
-    let leafRight = addLeaf(center: CGPoint(x: 0.61, y: 0.89), size: CGSize(width: 0.12, height: 0.18), rotationDegrees: 25)
-
-    strokePath(leafMid.outline, color: style.leafStroke)
-    strokePath(leafLeft.outline, color: style.leafStroke)
-    strokePath(leafRight.outline, color: style.leafStroke)
-
-    let veinWidth = max(lw * 0.55, 0.5 / rect.width) // ensure visibility at tiny pixel sizes
-    strokePath(leafMid.vein, color: style.leafStroke, width: veinWidth)
-    strokePath(leafLeft.vein, color: style.leafStroke, width: veinWidth)
-    strokePath(leafRight.vein, color: style.leafStroke, width: veinWidth)
-
-    context.restoreGState()
 }
 
 private func renderPNG(size: Int, kind: IconKind, to url: URL, previewBackground: NSColor? = nil) throws {
@@ -205,11 +222,9 @@ struct GenerateIcons {
         try renderPNG(size: 512, kind: .app, to: appIcon512)
         try renderPNG(size: 1024, kind: .app, to: appIcon1024)
 
-        // Handy previews.
         let appPreview = cwd.appendingPathComponent("output/icon-preview-app-512.png")
         try renderPNG(size: 512, kind: .app, to: appPreview)
 
-        // Menubar preview composited on light/dark backgrounds to make the template icon visible in docs.
         let menubarLight = cwd.appendingPathComponent("output/icon-preview-menubar-light-128.png")
         let menubarDark = cwd.appendingPathComponent("output/icon-preview-menubar-dark-128.png")
         try renderPNG(size: 128, kind: .menubar, to: menubarLight, previewBackground: NSColor(white: 0.95, alpha: 1))

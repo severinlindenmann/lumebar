@@ -2,6 +2,20 @@
 
 ## [Unreleased]
 
+## [1.0.0-beta3] - 2026-02-06
+### Added
+- Added repeatable app packaging scripts for `.app` and `.zip` outputs.
+- Added optional signing/notarization script for Developer ID distribution.
+
+### Changed
+- Reworked icon pipeline with a new full app icon design and a dedicated monochrome menu bar glyph.
+- Updated menu bar icon rendering to use fixed status-item sizing for consistent appearance.
+- Updated app bundle packaging to compile assets with `actool` and emit `AppIcon.icns`.
+
+### Fixed
+- Fixed packaged app startup crash caused by missing bundled `libRoyalVNCKit.dylib`.
+- Fixed app icon metadata/packaging so Finder and LaunchServices resolve the icon reliably.
+
 ## [1.0.0-beta2] - 2026-02-06
 ### Fixed
 - Added explicit CLI-not-installed error handling so Start/Stop shows a clear message when `lume` is unavailable.
