@@ -24,6 +24,12 @@ struct LumeVM: Codable, Identifiable {
         (status ?? state)?.lowercased() == "provisioning"
     }
 
+    var sortRank: Int {
+        if isRunning { return 0 }
+        if isProvisioning { return 1 }
+        return 2
+    }
+
     var provisioningDescription: String {
         switch provisioningOperation?.lowercased() {
         case "ipsw_install": return "Installing macOS…"
@@ -149,8 +155,9 @@ final class LumeClient: ObservableObject {
     }
 
     func updateBaseURL(_ value: String) {
-        guard let url = URL(string: value) else { return }
+        guard let url = URL(string: value), url != baseURL else { return }
         baseURL = url
+        serviceReachable = nil
     }
 
     func fetchVms() async {
@@ -160,7 +167,11 @@ final class LumeClient: ObservableObject {
 
         do {
             let decoded = try await withServerRetry { try await self.loadVMs() }
-            let sorted = decoded.sorted { $0.name.lowercased() < $1.name.lowercased() }
+            // Running VMs first, then ones being provisioned, then the rest; by name within each group.
+            let sorted = decoded.sorted {
+                if $0.sortRank != $1.sortRank { return $0.sortRank < $1.sortRank }
+                return $0.name.lowercased() < $1.name.lowercased()
+            }
             vms = sorted
             serviceReachable = true
             pruneDetailsCache(with: sorted)

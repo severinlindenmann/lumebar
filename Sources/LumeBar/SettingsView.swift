@@ -24,10 +24,11 @@ struct SettingsView: View {
                         client.updateBaseURL(baseURL)
                         Task { await client.fetchVms() }
                     }
-                    Button("Reset to Default") {
-                        baseURL = Self.defaultBaseURL
+                    if baseURL != Self.defaultBaseURL {
+                        Button("Reset to Default") {
+                            baseURL = Self.defaultBaseURL
+                        }
                     }
-                    .disabled(baseURL == Self.defaultBaseURL)
                 }
             }
 
@@ -75,6 +76,9 @@ struct SettingsView: View {
         }
         .formStyle(.grouped)
         .frame(width: 480)
+        .onChange(of: baseURL) {
+            client.updateBaseURL(baseURL)
+        }
         .fixedSize(horizontal: false, vertical: true)
     }
 

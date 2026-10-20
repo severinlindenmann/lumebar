@@ -11,11 +11,15 @@
 ### Changed
 - VM rows show OS, CPU, memory and IP at a glance, with icon buttons for start, stop and Screen Sharing.
 - "Start headless" toggle is available directly in the popover footer.
+- Running VMs are listed first, then provisioning VMs, then the rest.
+- Compact thumbnail placeholder until the first VNC frame arrives; the "Double-click to open" hint only shows on hover.
+- README showcases the new design with screenshots.
 
 ### Fixed
 - Start is no longer offered while a VM is provisioning; the row shows the provisioning step instead.
 - `lume` installed in `~/.local/bin` (the Lume installer's default) is now found when the app is launched from Finder.
 - Menu bar icon now loads from the compiled asset catalog instead of falling back to an SF Symbol.
+- Changing the service URL in Settings applies immediately and clears the previous connection status.
 - `scripts/package-app.sh` works with newer SwiftPM, where `.build/release` is a symlink.
 
 ## [1.0.0-beta3] - 2026-02-06

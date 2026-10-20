@@ -86,10 +86,9 @@ struct ContentView: View {
                         client.isLoading ? .linear(duration: 0.8).repeatForever(autoreverses: false) : .default,
                         value: client.isLoading
                     )
-                    .frame(width: 26, height: 26)
             }
             .buttonStyle(.glass)
-            .buttonBorderShape(.roundedRectangle(radius: 8))
+            .buttonBorderShape(.circle)
             .controlSize(.small)
             .help("Refresh")
             .accessibilityLabel("Refresh")
@@ -355,7 +354,7 @@ private struct VMRow: View {
         } else if isBusy {
             ProgressView()
                 .controlSize(.small)
-                .frame(width: 28, height: 28)
+                .frame(width: 24, height: 24)
         } else if vm.isRunning {
             ScreenSharingButton(vm: vm, client: client)
 
@@ -364,10 +363,9 @@ private struct VMRow: View {
             } label: {
                 Image(systemName: "stop.fill")
                     .font(.system(size: 11))
-                    .frame(width: 26, height: 26)
             }
             .buttonStyle(.glass)
-            .buttonBorderShape(.roundedRectangle(radius: 8))
+            .buttonBorderShape(.circle)
             .controlSize(.small)
             .help("Stop \(vm.name)")
             .accessibilityLabel("Stop \(vm.name)")
@@ -377,10 +375,10 @@ private struct VMRow: View {
             } label: {
                 Image(systemName: "play.fill")
                     .font(.system(size: 11))
-                    .frame(width: 26, height: 26)
+                    .foregroundStyle(.green)
             }
-            .buttonStyle(.glassProminent)
-            .buttonBorderShape(.roundedRectangle(radius: 8))
+            .buttonStyle(.glass)
+            .buttonBorderShape(.circle)
             .controlSize(.small)
             .help(noDisplay ? "Start \(vm.name) headless" : "Start \(vm.name)")
             .accessibilityLabel("Start \(vm.name)")
@@ -428,6 +426,7 @@ private struct DetailsView: View {
     @ObservedObject var client: LumeClient
     @ObservedObject var thumbnails: VNCThumbnailStore
     @State private var isStatsExpanded = false
+    @State private var isHoveringThumbnail = false
     private static let byteFormatter: ByteCountFormatter = {
         let formatter = ByteCountFormatter()
         formatter.allowedUnits = [.useGB, .useMB]
@@ -494,7 +493,7 @@ private struct DetailsView: View {
                         .resizable()
                         .scaledToFit()
                 } else {
-                    VStack(spacing: 6) {
+                    HStack(spacing: 8) {
                         ProgressView()
                             .controlSize(.small)
                         Text(thumbnails.status(for: vm.name) ?? "Waiting for video…")
@@ -504,7 +503,7 @@ private struct DetailsView: View {
                 }
             }
 
-            if image != nil && isScreenSharingReady {
+            if image != nil && isScreenSharingReady && isHoveringThumbnail {
                 Text("Double-click to open")
                     .font(.caption2.weight(.semibold))
                     .padding(.horizontal, 7)
@@ -515,9 +514,13 @@ private struct DetailsView: View {
             }
         }
         .frame(maxWidth: .infinity)
-        .aspectRatio(thumbnailAspect, contentMode: .fit)
+        .frame(height: image == nil ? 64 : nil)
+        .aspectRatio(image == nil ? nil : thumbnailAspect, contentMode: .fit)
         .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
         .contentShape(Rectangle())
+        .onHover { hovering in
+            withAnimation(.easeOut(duration: 0.15)) { isHoveringThumbnail = hovering }
+        }
         .onTapGesture(count: 2) {
             guard isScreenSharingReady else { return }
             Task { await client.openScreenSharing(vm: vm) }
@@ -610,10 +613,9 @@ private struct ScreenSharingButton: View {
         } label: {
             Image(systemName: "rectangle.on.rectangle")
                 .font(.system(size: 11))
-                .frame(width: 26, height: 26)
         }
         .buttonStyle(.glass)
-        .buttonBorderShape(.roundedRectangle(radius: 8))
+        .buttonBorderShape(.circle)
         .controlSize(.small)
         .disabled(!isReady)
         .help(isReady ? "Open Screen Sharing" : "Waiting for VNC details")
