@@ -74,7 +74,7 @@ if [[ ! -f "$plist_path" ]]; then
 fi
 
 resource_bundle_path="$(
-  find .build -type d -path '*/release/*_LumeBar.bundle' -print -quit
+  find -L .build -type d -path '*/release/*_LumeBar.bundle' -print -quit
 )"
 if [[ -z "$resource_bundle_path" ]]; then
   echo "error: SwiftPM resource bundle not found in .build/release."
@@ -112,7 +112,7 @@ plutil -replace CFBundlePackageType -string APPL "$app_path/Contents/Info.plist"
 # The binary is linked with @rpath lookups that resolve next to the executable.
 while IFS= read -r dylib_path; do
   cp "$dylib_path" "$app_path/Contents/MacOS/"
-done < <(find .build -type f -path '*/release/*.dylib' -not -path '*.dSYM/*' -print)
+done < <(find -L .build -type f -path '*/release/*.dylib' -not -path '*.dSYM/*' -print)
 
 if [[ "$create_zip" -eq 1 ]]; then
   echo "[package] creating zip archive at ${zip_path}"
