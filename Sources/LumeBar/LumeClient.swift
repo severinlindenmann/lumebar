@@ -12,11 +12,24 @@ struct LumeVM: Codable, Identifiable {
     let display: String?
     let ipAddress: String?
     let vncUrl: String?
+    let provisioningOperation: String?
 
     var id: String { name }
 
     var isRunning: Bool {
         (status ?? state)?.lowercased() == "running"
+    }
+
+    var isProvisioning: Bool {
+        (status ?? state)?.lowercased() == "provisioning"
+    }
+
+    var provisioningDescription: String {
+        switch provisioningOperation?.lowercased() {
+        case "ipsw_install": return "Installing macOS…"
+        case "pull": return "Downloading image…"
+        default: return "Provisioning…"
+        }
     }
 
     var stateDescription: String {
@@ -106,6 +119,7 @@ final class LumeClient: ObservableObject {
     @Published private(set) var detailsLoading: Set<String> = []
     @Published private(set) var detailsError: [String: String] = [:]
     @Published private(set) var vmActionsInFlight: Set<String> = []
+    @Published private(set) var serviceReachable: Bool?
 
     private var baseURL = URL(string: "http://localhost:7777")!
     private var didAttemptStartServer = false
@@ -124,6 +138,16 @@ final class LumeClient: ObservableObject {
         return decoder
     }()
 
+    var serviceAddress: String {
+        guard let host = baseURL.host else { return baseURL.absoluteString }
+        if let port = baseURL.port { return "\(host):\(port)" }
+        return host
+    }
+
+    var lumeExecutablePath: String? {
+        findLumeExecutableURL()?.path
+    }
+
     func updateBaseURL(_ value: String) {
         guard let url = URL(string: value) else { return }
         baseURL = url
@@ -138,8 +162,10 @@ final class LumeClient: ObservableObject {
             let decoded = try await withServerRetry { try await self.loadVMs() }
             let sorted = decoded.sorted { $0.name.lowercased() < $1.name.lowercased() }
             vms = sorted
+            serviceReachable = true
             pruneDetailsCache(with: sorted)
         } catch {
+            serviceReachable = false
             errorMessage = errorMessage(from: error)
         }
     }
@@ -410,7 +436,10 @@ final class LumeClient: ObservableObject {
             .split(separator: ":")
             .map(String.init)
 
+        // Apps launched from Finder get a minimal PATH, so also check the
+        // locations the Lume installer and Homebrew use.
         let candidates = envPaths + [
+            (NSHomeDirectory() as NSString).appendingPathComponent(".local/bin"),
             "/opt/homebrew/bin",
             "/usr/local/bin",
             "/usr/bin",

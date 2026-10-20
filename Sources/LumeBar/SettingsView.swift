@@ -1,23 +1,113 @@
 import SwiftUI
 
 struct SettingsView: View {
+    @ObservedObject var client: LumeClient
     @Binding var baseURL: String
     @Binding var noDisplay: Bool
+
+    static let defaultBaseURL = "http://localhost:7777"
 
     var body: some View {
         Form {
             Section("Lume Service") {
-                TextField("Base URL", text: $baseURL)
-                Text("Default is http://localhost:7777")
-                    .font(.footnote)
-                    .foregroundColor(.secondary)
+                TextField("Service URL", text: $baseURL)
+                    .multilineTextAlignment(.trailing)
+
+                HStack(spacing: 8) {
+                    Circle()
+                        .fill(statusColor)
+                        .frame(width: 8, height: 8)
+                    Text(statusText)
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                    Button("Test Connection") {
+                        client.updateBaseURL(baseURL)
+                        Task { await client.fetchVms() }
+                    }
+                    Button("Reset to Default") {
+                        baseURL = Self.defaultBaseURL
+                    }
+                    .disabled(baseURL == Self.defaultBaseURL)
+                }
             }
 
-            Section("Run Options") {
-                Toggle("Start headless", isOn: $noDisplay)
+            Section("Virtual Machines") {
+                Toggle(isOn: $noDisplay) {
+                    Text("Start VMs headless")
+                    Text("No display window opens. Use Screen Sharing from the menu to see the VM.")
+                }
+            }
+
+            Section("Lume CLI") {
+                LabeledContent("Location") {
+                    if let path = client.lumeExecutablePath {
+                        Label {
+                            Text(abbreviatedPath(path))
+                                .font(.system(.body, design: .monospaced))
+                                .textSelection(.enabled)
+                        } icon: {
+                            Image(systemName: "checkmark.circle.fill")
+                                .foregroundStyle(.green)
+                        }
+                    } else {
+                        Label {
+                            Text("Not found")
+                        } icon: {
+                            Image(systemName: "xmark.circle.fill")
+                                .foregroundStyle(.red)
+                        }
+                    }
+                }
+                if client.lumeExecutablePath == nil {
+                    Link("Install Lume", destination: URL(string: "https://cua.ai/docs/lume/guide/getting-started/quickstart")!)
+                }
+            }
+
+            Section {
+                HStack {
+                    Text("LumeBar \(appVersion)")
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                    Link("Lume documentation", destination: URL(string: "https://cua.ai/docs/lume/guide/getting-started/quickstart")!)
+                }
+                .font(.footnote)
             }
         }
-        .padding(16)
-        .frame(width: 360)
+        .formStyle(.grouped)
+        .frame(width: 480)
+        .fixedSize(horizontal: false, vertical: true)
+    }
+
+    private var statusColor: Color {
+        switch client.serviceReachable {
+        case .some(true): .green
+        case .some(false): .red
+        case .none: .secondary
+        }
+    }
+
+    private var statusText: String {
+        switch client.serviceReachable {
+        case .some(true):
+            let count = client.vms.count
+            return "Connected · \(count == 1 ? "1 VM" : "\(count) VMs")"
+        case .some(false):
+            return "Not reachable"
+        case .none:
+            return "Not checked yet"
+        }
+    }
+
+    private var appVersion: String {
+        let info = Bundle.main.infoDictionary
+        let version = info?["CFBundleShortVersionString"] as? String ?? "dev"
+        if let build = info?["CFBundleVersion"] as? String {
+            return "\(version) (\(build))"
+        }
+        return version
+    }
+
+    private func abbreviatedPath(_ path: String) -> String {
+        (path as NSString).abbreviatingWithTildeInPath
     }
 }

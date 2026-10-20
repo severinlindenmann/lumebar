@@ -57,7 +57,7 @@ scripts/sign-and-notarize.sh \
 - Start headless: toggle in Settings to run VMs without display.
 
 ## Troubleshooting
-- If Start/Stop shows `no such file or directory`, ensure `lume` is installed (commonly `/opt/homebrew/bin/lume` on Apple Silicon).
+- If Start/Stop shows `no such file or directory`, ensure `lume` is installed. LumeBar looks in your `PATH`, `~/.local/bin`, `/opt/homebrew/bin` and `/usr/local/bin`; Settings shows which one it found.
 - If VM thumbnails appear black during early boot, wait for guest display initialization and reopen the menu to refresh snapshots.
 
 ## Third-Party Notices

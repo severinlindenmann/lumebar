@@ -14,11 +14,7 @@ struct LumeBarApp: App {
     }
 
     private var menuBarStatusImage: NSImage {
-        if let url = Bundle.module.url(
-            forResource: "menubar-2x",
-            withExtension: "png",
-            subdirectory: "Assets.xcassets/MenubarIcon.imageset"
-        ), let image = NSImage(contentsOf: url) {
+        if let image = Bundle.module.image(forResource: "MenubarIcon") {
             image.size = NSSize(width: 18, height: 18)
             image.isTemplate = true
             return image
@@ -55,7 +51,7 @@ struct LumeBarApp: App {
         .menuBarExtraStyle(.window)
 
         Settings {
-            SettingsView(baseURL: $baseURL, noDisplay: $noDisplay)
+            SettingsView(client: client, baseURL: $baseURL, noDisplay: $noDisplay)
         }
     }
 }
