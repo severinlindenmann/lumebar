@@ -250,6 +250,7 @@ private struct VMRow: View {
     let vm: LumeVM
     @ObservedObject var client: LumeClient
     @ObservedObject var thumbnails: VNCThumbnailStore
+    @ObservedObject private var settings = ScreenSharingSettings.shared
     @Binding var noDisplay: Bool
 
     private static let byteFormatter: ByteCountFormatter = {
@@ -260,6 +261,14 @@ private struct VMRow: View {
     }()
 
     private var isBusy: Bool { client.isActionInFlight(vmName: vm.name) }
+
+    private var endpoint: ScreenSharingEndpoint? {
+        settings.endpoint(for: vm, details: client.details[vm.name])
+    }
+
+    private var thumbnailTaskID: String {
+        "\(vm.name)-\(vm.isRunning)-\(endpoint?.key ?? "none")-\(settings.revision)"
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -300,12 +309,15 @@ private struct VMRow: View {
                 await client.fetchDetails(for: vm)
             }
         }
-        .task(id: "\(vm.name)-\(vm.isRunning)-\(vm.vncUrl ?? "")") {
-            if vm.isRunning, let vncUrl = vm.vncUrl {
-                thumbnails.start(vmName: vm.name, vncUrl: vncUrl)
+        .task(id: thumbnailTaskID) {
+            if vm.isRunning, let endpoint {
+                thumbnails.start(vmName: vm.name, endpoint: endpoint)
             } else {
                 thumbnails.stop(vmName: vm.name)
             }
+        }
+        .onChange(of: settings.revision) {
+            thumbnails.invalidate(vmName: vm.name)
         }
     }
 
@@ -391,6 +403,15 @@ private struct VMRow: View {
             Button("Open Screen Sharing") {
                 Task { await client.openScreenSharing(vm: vm) }
             }
+            Picker("Screen Sharing Source", selection: Binding(
+                get: { settings.preference(for: vm.name) },
+                set: { settings.setPreference($0, for: vm.name) }
+            )) {
+                ForEach(ScreenSharingPreference.allCases) { Text($0.title).tag($0) }
+            }
+            Button(settings.guestLogin(for: vm.name) == nil ? "Set Screen Sharing Login…" : "Edit Screen Sharing Login…") {
+                settings.promptForGuestLogin(vmName: vm.name)
+            }
             Button("Stop") {
                 Task { await client.stop(vm: vm) }
             }
@@ -425,6 +446,7 @@ private struct DetailsView: View {
     let vm: LumeVM
     @ObservedObject var client: LumeClient
     @ObservedObject var thumbnails: VNCThumbnailStore
+    @ObservedObject private var settings = ScreenSharingSettings.shared
     @State private var isStatsExpanded = false
     @State private var isHoveringThumbnail = false
     private static let byteFormatter: ByteCountFormatter = {
@@ -479,9 +501,9 @@ private struct DetailsView: View {
     private var thumbnailView: some View {
         let image = thumbnails.image(for: vm.name)
         let thumbnailAspect: CGFloat = 4.0 / 3.0
-        let vncUrl = client.details[vm.name]?.vncUrl ?? vm.vncUrl
-        let ip = client.details[vm.name]?.ipAddress ?? vm.ipAddress
-        let isScreenSharingReady = (vncUrl?.isEmpty == false) || (ip?.isEmpty == false)
+        let endpoint = settings.endpoint(for: vm, details: client.details[vm.name])
+        let isScreenSharingReady = endpoint != nil
+        let needsGuestLogin = endpoint?.kind == .guest && endpoint?.canSnapshot == false
 
         return ZStack(alignment: .bottomTrailing) {
             ZStack {
@@ -492,6 +514,14 @@ private struct DetailsView: View {
                     Image(decorative: image, scale: 1, orientation: .up)
                         .resizable()
                         .scaledToFit()
+                } else if needsGuestLogin {
+                    Label("Screen Sharing · double-click to open", systemImage: "rectangle.on.rectangle")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                } else if endpoint == nil {
+                    Text("No screen available")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
                 } else {
                     HStack(spacing: 8) {
                         ProgressView()
@@ -503,7 +533,7 @@ private struct DetailsView: View {
                 }
             }
 
-            if image != nil && isScreenSharingReady && isHoveringThumbnail {
+            if (image != nil || needsGuestLogin) && isScreenSharingReady && isHoveringThumbnail {
                 Text("Double-click to open")
                     .font(.caption2.weight(.semibold))
                     .padding(.horizontal, 7)
@@ -525,7 +555,7 @@ private struct DetailsView: View {
             guard isScreenSharingReady else { return }
             Task { await client.openScreenSharing(vm: vm) }
         }
-        .help(isScreenSharingReady ? "Double-click to open Screen Sharing" : "Waiting for VNC details")
+        .help(isScreenSharingReady ? "Double-click to open Screen Sharing" : "Waiting for connection details")
     }
 
     @ViewBuilder
@@ -602,11 +632,10 @@ private struct DetailsView: View {
 private struct ScreenSharingButton: View {
     let vm: LumeVM
     @ObservedObject var client: LumeClient
+    @ObservedObject private var settings = ScreenSharingSettings.shared
 
     var body: some View {
-        let vncUrl = client.details[vm.name]?.vncUrl ?? vm.vncUrl
-        let ip = client.details[vm.name]?.ipAddress ?? vm.ipAddress
-        let isReady = (vncUrl?.isEmpty == false) || (ip?.isEmpty == false)
+        let isReady = settings.endpoint(for: vm, details: client.details[vm.name]) != nil
 
         return Button {
             Task { await client.openScreenSharing(vm: vm) }
@@ -618,7 +647,7 @@ private struct ScreenSharingButton: View {
         .buttonBorderShape(.circle)
         .controlSize(.small)
         .disabled(!isReady)
-        .help(isReady ? "Open Screen Sharing" : "Waiting for VNC details")
+        .help(isReady ? "Open Screen Sharing" : "Waiting for connection details")
         .accessibilityLabel("Open Screen Sharing")
     }
 }

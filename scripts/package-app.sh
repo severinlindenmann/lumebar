@@ -11,6 +11,11 @@ Options:
   --skip-build        Reuse existing release build artifacts.
   --output-dir <dir>  Output directory (default: dist).
   --no-zip            Do not create a .zip archive.
+
+Environment:
+  LUMEBAR_SIGN_IDENTITY  Optional codesign identity (e.g. a self-signed "LumeBar Dev"
+                         certificate). A stable identity keeps macOS privacy decisions
+                         such as Local Network across rebuilds. Unset = ad-hoc signature.
 EOF
 }
 
@@ -113,6 +118,11 @@ plutil -replace CFBundlePackageType -string APPL "$app_path/Contents/Info.plist"
 while IFS= read -r dylib_path; do
   cp "$dylib_path" "$app_path/Contents/MacOS/"
 done < <(find -L .build -type f -path '*/release/*.dylib' -not -path '*.dSYM/*' -print)
+
+if [[ -n "${LUMEBAR_SIGN_IDENTITY:-}" ]]; then
+  echo "[package] signing with identity: ${LUMEBAR_SIGN_IDENTITY}"
+  codesign --force --deep --sign "$LUMEBAR_SIGN_IDENTITY" "$app_path"
+fi
 
 if [[ "$create_zip" -eq 1 ]]; then
   echo "[package] creating zip archive at ${zip_path}"

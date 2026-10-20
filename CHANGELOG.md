@@ -6,6 +6,9 @@
 - Popover header with service status, VM counts and a refresh button.
 - Empty state with a copyable `lume create` command, and an error banner with Try Again / Open Settings.
 - Row context menu: start headless or with display, open Screen Sharing, copy name or IP.
+- Screen Sharing source per VM (Automatic, Lume VNC, macOS Screen Sharing). Without Lume VNC (e.g. `--vnc disabled`) LumeBar falls back to the guest's own Screen Sharing for opening and, with a Keychain-stored login, for live previews.
+- `NSLocalNetworkUsageDescription` so macOS can prompt for Local Network access to guests.
+- Optional `LUMEBAR_SIGN_IDENTITY` for `scripts/package-app.sh` to sign with a stable identity.
 - Settings: grouped layout, connection status with Test Connection and Reset to Default, detected `lume` CLI location, app version.
 
 ### Changed

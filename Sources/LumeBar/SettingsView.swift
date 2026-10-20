@@ -35,7 +35,7 @@ struct SettingsView: View {
             Section("Virtual Machines") {
                 Toggle(isOn: $noDisplay) {
                     Text("Start VMs headless")
-                    Text("No display window opens. Use Screen Sharing from the menu to see the VM.")
+                    Text("No display window opens. Use Screen Sharing from the menu to see the VM. Without Lume VNC, enable Screen Sharing in the guest (System Settings › General › Sharing).")
                 }
             }
 

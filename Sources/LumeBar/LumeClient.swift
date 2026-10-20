@@ -244,19 +244,20 @@ final class LumeClient: ObservableObject {
             await fetchDetails(for: vm)
         }
 
-        if let vncUrl = details[vm.name]?.vncUrl ?? vm.vncUrl,
-           let url = URL(string: vncUrl) {
-            NSWorkspace.shared.open(url)
+        let settings = ScreenSharingSettings.shared
+        if let endpoint = settings.endpoint(for: vm, details: details[vm.name]) {
+            NSWorkspace.shared.open(endpoint.openURL)
             return
         }
 
-        if let ip = details[vm.name]?.ipAddress ?? vm.ipAddress, !ip.isEmpty,
-           let url = URL(string: "vnc://\(ip):5900") {
-            NSWorkspace.shared.open(url)
-            return
+        switch ScreenSharingSettings.shared.preference(for: vm.name) {
+        case .lumeVNC:
+            errorMessage = "\(vm.name) has no Lume VNC server (started with --vnc disabled?). Switch it to macOS Screen Sharing."
+        case .guest:
+            errorMessage = "No IP address yet for \(vm.name)."
+        case .auto:
+            errorMessage = "No VNC URL or IP available for \(vm.name)."
         }
-
-        errorMessage = "No VNC URL or IP available for \(vm.name)."
     }
 
     private func loadVMs() async throws -> [LumeVM] {
