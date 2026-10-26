@@ -468,7 +468,9 @@ private struct DetailsView: View {
         let rows = rowsForDetails()
 
         VStack(alignment: .leading, spacing: 8) {
-            thumbnailView
+            if hasScreenPreview {
+                thumbnailView
+            }
 
             if let error = client.detailsError[vm.name] {
                 Text(error)
@@ -504,6 +506,14 @@ private struct DetailsView: View {
                 }
             }
         }
+    }
+
+    /// Only reserve space for a preview when there is a screen to show or one is loading.
+    /// Without one, the Screen Sharing button in the VM row is the way to connect.
+    private var hasScreenPreview: Bool {
+        if thumbnails.image(for: vm.name) != nil { return true }
+        guard let endpoint = settings.endpoint(for: vm, details: client.details[vm.name]) else { return false }
+        return !(endpoint.kind == .guest && endpoint.canSnapshot == false)
     }
 
     private var thumbnailView: some View {
