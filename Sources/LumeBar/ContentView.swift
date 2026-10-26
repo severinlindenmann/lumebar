@@ -4,6 +4,7 @@ struct ContentView: View {
     @ObservedObject var client: LumeClient
     @ObservedObject var thumbnails: VNCThumbnailStore
     @Binding var noDisplay: Bool
+    @Binding var vncDisabled: Bool
 
     @State private var pollingTask: Task<Void, Never>?
 
@@ -27,7 +28,7 @@ struct ContentView: View {
                 } else {
                     VStack(spacing: 8) {
                         ForEach(client.vms) { vm in
-                            VMRow(vm: vm, client: client, thumbnails: thumbnails, noDisplay: $noDisplay)
+                            VMRow(vm: vm, client: client, thumbnails: thumbnails, noDisplay: $noDisplay, vncDisabled: $vncDisabled)
                         }
                     }
                     .fixedSize(horizontal: false, vertical: true)
@@ -126,7 +127,13 @@ struct ContentView: View {
                 .toggleStyle(.switch)
                 .controlSize(.mini)
                 .font(.caption)
-                .help("Start VMs without opening a display window")
+                .help("Start VMs without opening a display window (--display none)")
+
+            Toggle("VNC off", isOn: $vncDisabled)
+                .toggleStyle(.switch)
+                .controlSize(.mini)
+                .font(.caption)
+                .help("Start VMs with --vnc disabled. Avoids the macOS 27.0 VNC crash and closes the VNC port.")
 
             Spacer()
 
@@ -252,6 +259,7 @@ private struct VMRow: View {
     @ObservedObject var thumbnails: VNCThumbnailStore
     @ObservedObject private var settings = ScreenSharingSettings.shared
     @Binding var noDisplay: Bool
+    @Binding var vncDisabled: Bool
 
     private static let byteFormatter: ByteCountFormatter = {
         let formatter = ByteCountFormatter()
@@ -383,7 +391,7 @@ private struct VMRow: View {
             .accessibilityLabel("Stop \(vm.name)")
         } else {
             Button {
-                Task { await client.run(vm: vm, noDisplay: noDisplay) }
+                Task { await client.run(vm: vm, noDisplay: noDisplay, vncDisabled: vncDisabled) }
             } label: {
                 Image(systemName: "play.fill")
                     .font(.system(size: 11))
@@ -417,10 +425,10 @@ private struct VMRow: View {
             }
         } else if !vm.isProvisioning {
             Button("Start") {
-                Task { await client.run(vm: vm, noDisplay: noDisplay) }
+                Task { await client.run(vm: vm, noDisplay: noDisplay, vncDisabled: vncDisabled) }
             }
             Button(noDisplay ? "Start with Display" : "Start Headless") {
-                Task { await client.run(vm: vm, noDisplay: !noDisplay) }
+                Task { await client.run(vm: vm, noDisplay: !noDisplay, vncDisabled: vncDisabled) }
             }
         }
 

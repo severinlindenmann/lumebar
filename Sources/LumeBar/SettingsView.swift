@@ -4,6 +4,7 @@ struct SettingsView: View {
     @ObservedObject var client: LumeClient
     @Binding var baseURL: String
     @Binding var noDisplay: Bool
+    @Binding var vncDisabled: Bool
 
     static let defaultBaseURL = "http://localhost:7777"
 
@@ -36,6 +37,13 @@ struct SettingsView: View {
                 Toggle(isOn: $noDisplay) {
                     Text("Start VMs headless")
                     Text("No display window opens. Use Screen Sharing from the menu to see the VM. Without Lume VNC, enable Screen Sharing in the guest (System Settings › General › Sharing).")
+                }
+            }
+
+Section {
+                Toggle(isOn: $vncDisabled) {
+                    Text("Start VMs without VNC (--vnc disabled)")
+                    Text("Recommended on macOS 27.0: the Lume VNC server can crash the VM at start. Also closes the VNC port on the network. Use guest Screen Sharing instead.")
                 }
             }
 

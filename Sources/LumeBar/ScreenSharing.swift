@@ -13,7 +13,7 @@ enum ScreenSharingPreference: String, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .auto: "Automatic"
+        case .auto: "Automatic (guest first)"
         case .lumeVNC: "Lume VNC"
         case .guest: "macOS Screen Sharing"
         }
@@ -45,7 +45,9 @@ struct ScreenSharingEndpoint {
         let guest = guestEndpoint(ip: details?.ipAddress ?? vm.ipAddress, login: guestLogin)
 
         switch preference {
-        case .auto: return lume ?? guest
+        // Lume's built-in VNC server (Virtualization.framework `_VZVNCServer`) can hit an assertion and take the
+        // whole VM process down when a client connects. Prefer the guest's own Screen Sharing when reachable.
+        case .auto: return guest ?? lume
         case .lumeVNC: return lume
         case .guest: return guest
         }

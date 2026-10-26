@@ -127,6 +127,10 @@ final class LumeClient: ObservableObject {
     @Published private(set) var vmActionsInFlight: Set<String> = []
     @Published private(set) var serviceReachable: Bool?
 
+    /// Called before a Lume VNC connection is opened so other VNC clients (thumbnails) can release the server first.
+    var willOpenLumeVNC: ((String) -> Void)?
+    private var lastScreenSharingOpen: [String: Date] = [:]
+    private let screenSharingCooldown: TimeInterval = 3
     private var baseURL = URL(string: "http://localhost:7777")!
     private var didAttemptStartServer = false
     private var serverProcess: Process?
@@ -201,7 +205,7 @@ final class LumeClient: ObservableObject {
         }
     }
 
-    func run(vm: LumeVM, noDisplay: Bool) async {
+    func run(vm: LumeVM, noDisplay: Bool, vncDisabled: Bool) async {
         guard !vmActionsInFlight.contains(vm.name) else { return }
         vmActionsInFlight.insert(vm.name)
         defer { vmActionsInFlight.remove(vm.name) }
@@ -210,6 +214,9 @@ final class LumeClient: ObservableObject {
             var arguments = ["run", vm.name]
             if noDisplay {
                 arguments.append("--no-display")
+            }
+            if vncDisabled {
+                arguments.append(contentsOf: ["--vnc", "disabled"])
             }
             try await runCLIInBackground(arguments: arguments)
             let isRunning = try await waitForRunningState(vmName: vm.name, timeout: startVerificationTimeout)
@@ -240,12 +247,22 @@ final class LumeClient: ObservableObject {
     }
 
     func openScreenSharing(vm: LumeVM) async {
+        // Ignore repeated clicks: concurrent VNC handshakes can crash Lume's VNC server (and the VM with it).
+        let now = Date()
+        if let last = lastScreenSharingOpen[vm.name], now.timeIntervalSince(last) < screenSharingCooldown { return }
+        lastScreenSharingOpen[vm.name] = now
+
         if details[vm.name]?.ipAddress == nil && details[vm.name]?.vncUrl == nil {
             await fetchDetails(for: vm)
         }
 
         let settings = ScreenSharingSettings.shared
         if let endpoint = settings.endpoint(for: vm, details: details[vm.name]) {
+            if endpoint.kind == .lumeVNC {
+                // Drop our own thumbnail connection and let the server settle before a second client attaches.
+                willOpenLumeVNC?(vm.name)
+                try? await Task.sleep(nanoseconds: 1_000_000_000)
+            }
             NSWorkspace.shared.open(endpoint.openURL)
             return
         }
